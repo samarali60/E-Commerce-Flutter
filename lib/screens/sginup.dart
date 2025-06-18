@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
@@ -31,22 +30,6 @@ class _SignupState extends State<Signup> {
 
   File? _avatar;
   String? _profileImagePath;
-// Future<void> pickImage() async {
-//   try {
-//     final result = await FilePicker.platform.pickFiles(
-//       type: FileType.image,
-//     );
-
-//     if (result != null && result.files.single.path != null) {
-//       setState(() {
-//         _avatar = File(result.files.single.path!);
-//         _profileImagePath = result.files.single.path!;
-//       });
-//     }
-//   } catch (e) {
-//     _showErrorSnackBar('Failed to pick image: ${e.toString()}');
-//   }
-// }
 
   Future<void> pickImage() async {
     try {
@@ -165,7 +148,7 @@ final prefs = await SharedPreferences.getInstance();
         await prefs.setString('profileImagePath', _profileImagePath!);
       }
       _showSuccessSnackBar('Registration successful!');
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => MyHome()),
       );
@@ -216,10 +199,10 @@ final prefs = await SharedPreferences.getInstance();
                             CircleAvatar(
                               radius: 50,
                               backgroundImage:
-                                  (_avatar != null && _avatar!.existsSync())
+                                  _avatar != null
                                   ? FileImage(_avatar!)
                                   : null,
-                              child: (_avatar == null || !_avatar!.existsSync())
+                              child: _avatar == null 
                                   ? Icon(
                                       Icons.person,
                                       size: 50,
@@ -242,7 +225,6 @@ final prefs = await SharedPreferences.getInstance();
                           ],
                         ),
                       ),
-
                       formField(
                         name: "Enter First Name",
                         icon: Icons.person,

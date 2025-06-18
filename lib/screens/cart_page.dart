@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:testproject/models/order.dart';
 import 'package:testproject/screens/home.dart';
-import 'package:testproject/screens/home_screen.dart';
 import '../models/cart_item.dart';
 import '../helpers/cart_helper.dart';
 
@@ -93,7 +92,7 @@ void placeOrder() async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(
-          "My Cart",
+          "Your Cart",
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,

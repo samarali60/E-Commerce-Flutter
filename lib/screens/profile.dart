@@ -21,11 +21,12 @@ class _ProfilePageState extends State<ProfilePage> {
   String address = '';
   String gender = '';
   String? dateOfBirth;
-  String? profileImagePath;
   DateTime? _selectedDate;
   File? _avatar;
   String? _profileImagePath;
+
   final _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -41,14 +42,17 @@ class _ProfilePageState extends State<ProfilePage> {
       phone = prefs.getString('phone') ?? '';
       address = prefs.getString('address') ?? '';
       gender = prefs.getString('gender') ?? '';
-      dateOfBirth = prefs.getString('dateOfBirth') ?? ' ';
-      profileImagePath = prefs.getString('profileImagePath');
+      dateOfBirth = prefs.getString('dateOfBirth') ?? '';
+
+      _profileImagePath = prefs.getString('profileImagePath');
+      if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
+        _avatar = File(_profileImagePath!);
+      }
     });
   }
 
-  Future _saveUserData() async {
+  Future<void> _saveUserData() async {
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.setString('firstName', firstName);
     await prefs.setString('lastName', lastName);
     await prefs.setString('email', email);
@@ -58,13 +62,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_selectedDate != null) {
       await prefs.setString('dateOfBirth', _selectedDate!.toIso8601String());
     }
-  
-  // final storedEmail = prefs.getString('email');
-  // if (storedEmail != null && storedEmail == email) {
-  //   _showErrorSnackBar('This email is already registered.');
-  //   return;
-  // }
-    _loadUserData();
   }
 
   Future<void> pickImage() async {
@@ -81,6 +78,9 @@ class _ProfilePageState extends State<ProfilePage> {
           _avatar = File(pickedFile.path);
           _profileImagePath = pickedFile.path;
         });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profileImagePath', pickedFile.path);
       }
     } catch (e) {
       _showErrorSnackBar('Failed to pick image: ${e.toString()}');
@@ -108,18 +108,19 @@ class _ProfilePageState extends State<ProfilePage> {
         content: const Text("Are you sure you want to logout?"),
         actions: [
           TextButton(
-            child: const Text("Cancel", style: TextStyle(color: Colors.deepPurple),),
+            child: const Text("Cancel", style: TextStyle(color: Colors.deepPurple)),
             onPressed: () => Navigator.pop(context),
           ),
           TextButton(
-            child: const Text("Logout",  style: TextStyle(color: Colors.red),),
+            child: const Text("Logout", style: TextStyle(color: Colors.red)),
             onPressed: () async {
-              final SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
+              final SharedPreferences prefs = await SharedPreferences.getInstance();
               await prefs.remove('email');
               await prefs.remove('password');
+              await prefs.remove('profileImagePath');
               await CartHelper.clearCart();
               await clearOrders();
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => Splash()),
@@ -146,9 +147,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     radius: 50,
                     backgroundImage: _avatar != null
                         ? FileImage(_avatar!)
-                        : null,
-                    child: _avatar == null
-                        ? Icon(Icons.person, size: 50, color: Colors.deepPurple)
+                        : _profileImagePath != null
+                            ? FileImage(File(_profileImagePath!))
+                            : null,
+                    child: (_avatar == null && _profileImagePath == null)
+                        ? const Icon(Icons.person, size: 50, color: Colors.deepPurple)
                         : null,
                   ),
                   CircleAvatar(
@@ -156,11 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     radius: 20,
                     child: IconButton(
                       onPressed: pickImage,
-                      icon: Icon(
-                        Icons.camera_alt,
-                        size: 20,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
                     ),
                   ),
                 ],
@@ -172,15 +171,11 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildInfoTile("Phone", phone, Icons.phone),
             _buildInfoTile("Address", address, Icons.location_on),
             _buildInfoTile("Gender", gender, Icons.person),
-            _buildInfoTile(
-              "Date of Birth",
-              dateOfBirth ?? 'Not set',
-              Icons.calendar_today,
-            ),
+            _buildInfoTile("Date of Birth", dateOfBirth ?? 'Not set', Icons.calendar_today),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => logout(context),
-              child: Text("Logout?"),
+              child: const Text("Logout?"),
             ),
           ],
         ),
@@ -194,7 +189,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: ListTile(
         title: Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.deepPurple,
@@ -205,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage> {
         trailing: label == "Date of Birth"
             ? IconButton(
                 onPressed: () => _showDatePicker(context),
-                icon: Icon(Icons.calendar_today, color: Colors.deepPurple),
+                icon: const Icon(Icons.calendar_today, color: Colors.deepPurple),
               )
             : IconButton(
                 icon: const Icon(Icons.edit, color: Colors.deepPurple),
@@ -235,11 +230,13 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
-    if (picked != null && picked != dateOfBirth) {
+    if (picked != null) {
       setState(() {
         _selectedDate = picked;
         dateOfBirth = _selectedDate!.toIso8601String();
       });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('dateOfBirth', dateOfBirth!);
     }
   }
 
@@ -259,9 +256,7 @@ class _ProfilePageState extends State<ProfilePage> {
           actions: [
             TextButton(
               child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text("Save"),
@@ -269,13 +264,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 setState(() {
                   if (label == "Name") {
                     List<String> nameParts = _text.text.trim().split(" ");
-                    if (nameParts.length >= 2) {
-                      firstName = nameParts[0];
-                      lastName = nameParts.sublist(1).join(" ");
-                    } else if (nameParts.length == 1) {
-                      firstName = nameParts[0];
-                      lastName = '';
-                    }
+                    firstName = nameParts.isNotEmpty ? nameParts[0] : '';
+                    lastName = nameParts.length > 1 ? nameParts.sublist(1).join(" ") : '';
                   } else if (label == "Email") {
                     email = _text.text;
                   } else if (label == "Phone") {

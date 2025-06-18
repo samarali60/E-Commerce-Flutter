@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:testproject/screens/home.dart';
-import 'package:testproject/screens/home_screen.dart';
 import 'package:testproject/screens/sginup.dart';
 
 class LoginPage extends StatefulWidget {
